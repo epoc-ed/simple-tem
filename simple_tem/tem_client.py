@@ -12,6 +12,7 @@ class TEMClient:
         self.verbose = True
 
         self._set_default_timeout()
+        print(f"endpoint: {self.host}:{self.port}")
 
     def _set_default_timeout(self):
         self.socket.setsockopt(zmq.SNDTIMEO, TEMClient._default_timeout)
@@ -49,7 +50,41 @@ class TEMClient:
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
         
+    def exit(self):
+        status, message  = self._send_message("exit")
+        if status == "OK" and message == "Bye!":
+            return True
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+    @property
+    def stage_position(self):
+        status, message  = self._send_message("GetStagePosition")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+        
+    def SetILFocus(self, value):
+        status, message  = self._send_message(f"SetILFocus:{value}")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+        
+    def SetILs(self, stig_x, stig_y):
+        status, message  = self._send_message(f"SetILs:{stig_x},{stig_y}")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
 
 if __name__ == "__main__":
-    c = TEMClient("localhost", 4599)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("host")
+    args = parser.parse_args()
+    # c = TEMClient("temserver", 3535)
+    c = TEMClient(args.host, 3535)
     c.ping()
+    # print(c.stage_position)
