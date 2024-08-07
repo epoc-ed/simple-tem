@@ -8,12 +8,22 @@ class Stage3:
     def GetStatus(self):
         return 0
     
+    def SetZRel(self, value):
+        if not isinstance(value, float):
+            raise ValueError("SetZReal needs a float")
+        return
+    
+    def SetTXRel(self, value):
+        if not isinstance(value, float):
+            raise ValueError("SetTXReal needs a float")
+        return
+    
 class EOS3:
     def __init__(self):
         pass
 
     def GetMagValue(self):
-        return 0
+        return [15000, 'X', 'X15k']
     
     def GetFunctionMode(self):
         return 0

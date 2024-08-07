@@ -8,13 +8,21 @@ import argparse
 class TEMServer:
     _IL1_DEFAULT = 21902
     #List of all commands that we can use
-    _commands = ['ping', 'GetStagePos', 'SetILFocus', 'SetILs']
+    _commands = ['exit', 
+                 'ping', 
+                 'GetStagePosition', 
+                 'SetILFocus', 
+                 'SetILs', 
+                 'GetMagValue',
+                 'SetZRel',
+                 'SetTXRel']
     
     def __init__(self, port):
 
         self.stage = TEM3.Stage3()
         self.lens = TEM3.Lens3()
         self.defl = TEM3.Def3()
+        self.eos = TEM3.EOS3()
 
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
@@ -53,6 +61,10 @@ class TEMServer:
         pos = self.stage.GetPos()
         return "OK:{}".format(pos)
     
+    def GetMagValue(self):
+        value = self.eos.GetMagValue()
+        return "OK:{}".format(value)
+    
     def SetILFocus(self, value):
         value = self._from_string("u2", value)
         print("Setting IL Focus to: {}".format(value))
@@ -61,13 +73,22 @@ class TEMServer:
         return "OK:{}".format(value)
     
     def SetILs(self, stig_x, stig_y):
-        #Decode
-        # assert len(value) == 2
         stig_x = self._from_string("u2", stig_x)
         stig_y= self._from_string("u2", stig_y)
         self.defl.SetILs(stig_x, stig_y)
-
         return "OK:{},{}".format(stig_x, stig_y)
+
+    def SetZRel(self, val : float):
+        #TODO! range
+        val = self._from_string("f", val)
+        self.stage.SetZRel(val)
+        return "OK:{}".format(val)
+    
+    def SetTXRel(self, val : float):
+        #TODO! range
+        val = self._from_string("f", val)
+        self.stage.SetTXRel(val)
+        return "OK:{}".format(val)
     
     def exit(self):
         """special case since we are exiting"""
@@ -75,10 +96,14 @@ class TEMServer:
         sys.exit()
 
     def _from_string(self, fmt, s):
+        #TODO! factor out? 
         if fmt == "u2":
             value = int(s)
             if value < 0 or value > 0xFFFF:
                 raise ValueError("Integer out of range")
+            return value
+        elif fmt == "f":
+            value = float(s)
             return value
 
         else:

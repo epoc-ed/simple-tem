@@ -1,5 +1,6 @@
 import zmq
 from rich import print
+import json
 
 class TEMClient:
     _default_timeout = 1000 #1s
@@ -61,7 +62,9 @@ class TEMClient:
     def stage_position(self):
         status, message  = self._send_message("GetStagePosition")
         if status == "OK":
-            return message
+            message = message.replace("'", '"')
+            res = json.loads(message)
+            return res
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
         
@@ -78,6 +81,30 @@ class TEMClient:
             return message
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
+        
+    def SetZRel(self, val):
+        status, message  = self._send_message(f"SetZRel:{val}")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+        
+    def SetTXRel(self, val):
+        status, message  = self._send_message(f"SetTXRel:{val}")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+    def GetMagValue(self):
+        status, message = self._send_message('GetMagValue')
+        if status == "OK":
+            message = message.replace("'", '"')
+            res = json.loads(message)
+            return res
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
 
 if __name__ == "__main__":
     import argparse
