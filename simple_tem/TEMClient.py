@@ -1,6 +1,7 @@
 import zmq
 from rich import print
 from .utils import unpack_json
+import json
 
 class TEMClient:
     _default_timeout = 1000 #1s
@@ -23,45 +24,49 @@ class TEMClient:
         self.socket.setsockopt(zmq.SNDTIMEO, -1)
         self.socket.setsockopt(zmq.RCVTIMEO, -1)
 
-    def _send_message(self, message):
-        self.socket.connect(f"tcp://{self.host}:{self.port}")
+    def _send_message(self, cmd, *args):
+        
+        cmd = cmd.encode('ascii')
+        args = json.dumps(args).encode('ascii')
         if self.verbose:
-            print(f'[spring_green4]Sending: {message}[/spring_green4]')
-        self.socket.send_string(message)
-        reply = self.socket.recv_string()
+            print(f'[spring_green4]Sending: {cmd}, {args}[/spring_green4]')
+
+        self.socket.connect(f"tcp://{self.host}:{self.port}")
+        self.socket.send_multipart([cmd, args])
+        reply = self.socket.recv_multipart()
         status, message = self._decode_reply(reply)
         if self.verbose:
             print(f'[dark_orange3]Received: {status}:{message}[/dark_orange3]')
         self.socket.disconnect(f"tcp://{self.host}:{self.port}")
-        return status, message
+
+        self._check_error(status, message) #TODO! Add function
+        return message
 
     def _decode_reply(self, reply):
-        if ':' in reply:
-            status, message = reply.split(':')
-        else:
-            status = reply
-            message = None
-        return status, message
+        return (json.loads(r) for r in reply)
+  
+    def _check_error(self, status, message):
+        if status != "OK":
+            raise ValueError(f"Unexpected reply: {status}:{message}")
 
-    def ping(self):
+    def ping(self) -> bool:
         """
         Check if the server is alive, returns True or throws
         """
-        status, message  = self._send_message("ping")
-        if status == "OK" and message == "pong":
-            return True
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message("ping")
+
         
-    def exit(self):
+    def exit(self) -> None:
         """
         Exit the server
         """
-        status, message  = self._send_message("exit")
-        if status == "OK" and message == "Bye!":
-            return True
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        self._send_message("exit")
+
+    def UnknownFunction(self):
+        """
+        Calls an unknown function on the server side. Testing only
+        """
+        return self._send_message("UnknownFunction")
 
     # --------------------- STAGE ---------------------
         
@@ -70,11 +75,7 @@ class TEMClient:
         Get motor position. it depends on the drive mode.
         (x : float, y : float, z : float, tiltx : float, tilty : float)
         """
-        status, message  = self._send_message("GetStagePosition")
-        if status == "OK":
-            return unpack_json(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message("GetStagePosition")
         
     @property
     def stage_position(self):
@@ -87,94 +88,62 @@ class TEMClient:
         (x : int, y : int, z : int, tiltx : int, tilty : int). 
         """
         # 
-        status, message = self._send_message('GetStageStatus')
-        if status == "OK":
-            return unpack_json(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")  
+        return self._send_message('GetStageStatus')
 
-    
-
-    def SetZRel(self, val : float):
+    def SetZRel(self, val : float) -> None:
         """
         Relative move along Z axis.
         Range:+-100000.0(nm)
         """
-        status, message  = self._send_message(f"SetZRel:{val}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        self._send_message("SetZRel", val)
     
-    def SetXRel(self, val : float):
+    def SetXRel(self, val : float) -> None:
         """
         Relative move along Z axis.
         Range:+-100000.0(nm)
         """
-        status, message  = self._send_message(f"SetXRel:{val}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        self._send_message("SetXRel", val)
 
-    def SetTXRel(self, val : float):
+    def SetTXRel(self, val : float) -> None:
         """
         Relative tilt around X axis.
         tilt-x relative value. range is +-90.00.0(degree)
         """
-        status, message  = self._send_message(f"SetTXRel:{val}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        self._send_message("SetTXRel", val)
 
-    def SetTiltXAngle(self, val):
+    def SetTiltXAngle(self, val) -> None:
         """
         Set TiltX axis absolute value. range is +-90.00(degree)
         """
-        status, message  = self._send_message(f"SetTiltXAngle:{val}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        self._send_message("SetTiltXAngle", val)
+
 
     def Getf1OverRateTxNum(self):
         """
         Get drive frequency f1 of TiltX.
         0= 10(/sec), 1= 2(/sec), 2= 1(/sec), 3= 0.5(/sec), 4= 0.25(/sec), 5= 0.1(/sec)
         """
-        status, message  = self._send_message("Getf1OverRateTxNum")
-        if status == "OK":
-            return int(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message("Getf1OverRateTxNum")
 
-    def Setf1OverRateTxNum(self, val):
+
+    def Setf1OverRateTxNum(self, val) -> None:
         """
         Set drive frequency f1 of TiltX.
         """
-        status, message  = self._send_message(f"Setf1OverRateTxNum:{val}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
-
+        self._send_message("Setf1OverRateTxNum", val)
+        
     def GetMovementValueMeasurementMethod(self):
         """
         Get movement amount measurement method (for Z/Tx/Ty).
         method. 0= encoder, 1= potens
         """
-        status, message  = self._send_message("GetMovementValueMeasurementMethod")
-        if status == "OK":
-            return int(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message("GetMovementValueMeasurementMethod")
+
 
     def StopStage(self) -> None:
         """Stop all the drives."""
-        status, message  = self._send_message("StopStage")
-        if status != "OK":
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        self._send_message("StopStage")
+
 
 
     # END STAGE
@@ -186,11 +155,7 @@ class TEMClient:
         Get magnification or camera length or rocking angle.
         returns (value, unit, name)
         """
-        status, message = self._send_message('GetMagValue')
-        if status == "OK":
-            return unpack_json(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetMagValue')
 
     def GetFunctionMode(self) -> list:
         """
@@ -198,120 +163,78 @@ class TEMClient:
         [On TEM Observation] 0=MAG, 1=MAG2, 2= LowMAG, 3= SAMAG, 4= DIFF
         [On STEM Observation] 0= Align, 1= SM-LMAG, 2= SM-MAG, 3= AMAG, 4= uuDIFF, 5= Rocking
         """
-        status, message = self._send_message('GetFunctionMode')
-        if status == "OK":
-            return unpack_json(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetFunctionMode')
 
-    def SelectFunctionMode(self, mode : int):
+
+    def SelectFunctionMode(self, mode : int) -> None:
         """
         [On TEM Observation] 0=MAG, 1=MAG2, 2= LowMAG, 3= SAMAG, 4= DIFF
         [On STEM Observation] 0= Align, 1= SM-LMAG, 2= SM-MAG, 3= AMAG, 4= uuDIFF, 5= Rocking
         """
-        status, message  = self._send_message(f"SelectFunctionMode:{mode}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")   
-    def SetSelector(self, value : int):
+        self._send_message("SelectFunctionMode", mode)
+
+        
+    def SetSelector(self, value : int) -> None:
         """
          (int) mag or camera length or rocking angle number value.
         """
-        status, message  = self._send_message(f"SetSelector:{value}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")  
+        self._send_message("SetSelector", value)
 
-    def GetSpotSize(self):
+    def GetSpotSize(self) -> int:
         """
         Get spot size number. 0-7
         """
-        status, message  = self._send_message("GetSpotSize")
-        if status == "OK":
-            return int(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message("GetSpotSize")
 
-    def GetAlpha(self):
+    def GetAlpha(self) -> int:
         """
         Get alpha number. 0-8
         """
-        status, message  = self._send_message("GetAlpha")
-        if status == "OK":
-            return int(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message("GetAlpha")
 
     # END EOS
     # --------------------- LENS ---------------------
 
-    def SetILFocus(self, value):
+    def SetILFocus(self, value) -> None:
         """
         Set IL-focus value(without MAG link).
         IL-focus value.(0-65535)
         """
-        status, message  = self._send_message(f"SetILFocus:{value}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        self._send_message("SetILFocus", value)
+
 
     def GetCL3(self) -> int:
         """
         CL3 value(0-65535).
         """
-        status, message = self._send_message('GetCL3')
-        if status == "OK":
-            val = int(message)
-            return val
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetCL3')
 
     def GetIL1(self) -> int:
         """
         IL1 value(0-65535).
         """
-        status, message = self._send_message('GetIL1')
-        if status == "OK":
-            val = int(message)
-            return val
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetIL1')
+
 
     def GetIL3(self) -> int:
         """
         IL3 value(0-65535).
         """
-        status, message = self._send_message('GetIL3')
-        if status == "OK":
-            val = int(message)
-            return val
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetIL3')
 
     def GetOLf(self) -> int:
         """
         GetOLf value(0-65535).
         """
-        status, message = self._send_message('GetOLf')
-        if status == "OK":
-            val = int(message)
-            return val
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetOLf')
+
     
     def GetOLc(self) -> int:
         """
         GetOLc value(0-65535).
         """
-        status, message = self._send_message('GetOLc')
-        if status == "OK":
-            val = int(message)
-            return val
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetOLc')
+        
 
     # END LENS
     # ---------------------- DEF ----------------------
@@ -322,22 +245,16 @@ class TEMClient:
         Get ILStig value. this returns I/O output value.
         (x : int, y : int) 0-65535
         """
-        status, message = self._send_message('GetILs')
-        if status == "OK":
-            return unpack_json(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetILs')
+
         
     def SetILs(self, stig_x : int, stig_y : int):
         """
         Set ILStig value. The variable corresponds to I/O output value.
         (x_axis : int, y_axis : int) 0-65535
         """
-        status, message  = self._send_message(f"SetILs:{stig_x},{stig_y}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        self._send_message("SetILs", stig_x, stig_y)
+        
         
         
     def GetPLA(self):
@@ -345,34 +262,20 @@ class TEMClient:
         Get PLAlign value. this returns I/O output value.
         (x : int, y : int) 0-65535
         """
-        status, message = self._send_message('GetPLA')
-        if status == "OK":
-            return unpack_json(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetPLA')
 
     def GetBeamBlank(self) -> int:
         """
         blanking status. 0=OFF, 1=ON
         """
-        status, message = self._send_message('GetBeamBlank')
-        if status == "OK":
-            val = int(message)
-            return val
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message('GetBeamBlank')
 
-    def SetBeamBlank(self, val):
+    def SetBeamBlank(self, val) -> None:
         """
         blanking status. 0=OFF, 1=ON
         """
-        status, message  = self._send_message(f"SetBeamBlank:{val}")
-        if status == "OK":
-            return message
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
-        
-
+        self._send_message("SetBeamBlank", val)
+    
 
     # END DEF
     # ---------------------- APT ----------------------     
@@ -384,8 +287,4 @@ class TEMClient:
 
         returns: Selected aperture’s hole number. 0= Open, 1-4= hole index
         """
-        status, message  = self._send_message(f"GetAperatureSize:{index}")
-        if status == "OK":
-            return int(message)
-        else:   
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+        return self._send_message("GetAperatureSize", index)

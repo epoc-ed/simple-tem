@@ -9,18 +9,18 @@ class Stage3:
         return [0,0,0,0,0]
     
     def SetZRel(self, value):
-        if not isinstance(value, float):
-            raise ValueError("SetZReal needs a float")
+        if not isinstance(value, (float, int)):
+            raise ValueError("SetZReal needs a float or int")
         return
     
     def SetXRel(self, value):
-        if not isinstance(value, float):
-            raise ValueError("SetXReal needs a float")
+        if not isinstance(value, (float, int)):
+            raise ValueError("SetXReal needs a float or int")
         return
     
     def SetTXRel(self, value):
-        if not isinstance(value, float):
-            raise ValueError("SetTXReal needs a float")
+        if not isinstance(value, (float, int)):
+            raise ValueError("SetTXReal needs a float or int")
         return
     
     def SetTiltXAngle(self, val):
@@ -50,11 +50,11 @@ class EOS3:
     
     def SelectFunctionMode(self, mode):
         if not isinstance(mode, int):
-            raise ValueError
+            raise ValueError("SelectFunctionMode needs an int")
     
     def SetSelector(self, value):
         if not isinstance(value, int):
-            raise ValueError
+            raise ValueError("SetSelector needs an int")
         
     def GetSpotSize(self):
         return 3
@@ -68,7 +68,7 @@ class Lens3:
 
     def SetILFocus(self, value):
         if not isinstance(value, int):
-            raise ValueError
+            raise ValueError("SetILFocus needs int")
         #TODO! check range
         pass 
 
