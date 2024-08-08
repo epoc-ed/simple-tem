@@ -1,6 +1,6 @@
 import zmq
 from rich import print
-import json
+from .utils import unpack_json
 
 class TEMClient:
     _default_timeout = 1000 #1s
@@ -72,9 +72,7 @@ class TEMClient:
         """
         status, message  = self._send_message("GetStagePosition")
         if status == "OK":
-            message = message.replace("'", '"')
-            res = json.loads(message)
-            return res
+            return unpack_json(message)
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
         
@@ -91,9 +89,7 @@ class TEMClient:
         # 
         status, message = self._send_message('GetStageStatus')
         if status == "OK":
-            message = message.replace("'", '"')
-            res = json.loads(message)
-            return res
+            return unpack_json(message)
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")  
 
@@ -109,7 +105,18 @@ class TEMClient:
             return message
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
-        
+    
+    def SetXRel(self, val : float):
+        """
+        Relative move along Z axis.
+        Range:+-100000.0(nm)
+        """
+        status, message  = self._send_message(f"SetXRel:{val}")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
     def SetTXRel(self, val : float):
         """
         Relative tilt around X axis.
@@ -131,6 +138,45 @@ class TEMClient:
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
 
+    def Getf1OverRateTxNum(self):
+        """
+        Get drive frequency f1 of TiltX.
+        0= 10(/sec), 1= 2(/sec), 2= 1(/sec), 3= 0.5(/sec), 4= 0.25(/sec), 5= 0.1(/sec)
+        """
+        status, message  = self._send_message("Getf1OverRateTxNum")
+        if status == "OK":
+            return int(message)
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+    def Setf1OverRateTxNum(self, val):
+        """
+        Set drive frequency f1 of TiltX.
+        """
+        status, message  = self._send_message(f"Setf1OverRateTxNum:{val}")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+    def GetMovementValueMeasurementMethod(self):
+        """
+        Get movement amount measurement method (for Z/Tx/Ty).
+        method. 0= encoder, 1= potens
+        """
+        status, message  = self._send_message("GetMovementValueMeasurementMethod")
+        if status == "OK":
+            return int(message)
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+    def StopStage(self) -> None:
+        """Stop all the drives."""
+        status, message  = self._send_message("StopStage")
+        if status != "OK":
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+
     # END STAGE
 
     # ---------------------- EOS ----------------------
@@ -142,12 +188,62 @@ class TEMClient:
         """
         status, message = self._send_message('GetMagValue')
         if status == "OK":
-            message = message.replace("'", '"')
-            res = json.loads(message)
-            return res
+            return unpack_json(message)
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
-        
+
+    def GetFunctionMode(self) -> list:
+        """
+        (index, name)
+        [On TEM Observation] 0=MAG, 1=MAG2, 2= LowMAG, 3= SAMAG, 4= DIFF
+        [On STEM Observation] 0= Align, 1= SM-LMAG, 2= SM-MAG, 3= AMAG, 4= uuDIFF, 5= Rocking
+        """
+        status, message = self._send_message('GetFunctionMode')
+        if status == "OK":
+            return unpack_json(message)
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+    def SelectFunctionMode(self, mode : int):
+        """
+        [On TEM Observation] 0=MAG, 1=MAG2, 2= LowMAG, 3= SAMAG, 4= DIFF
+        [On STEM Observation] 0= Align, 1= SM-LMAG, 2= SM-MAG, 3= AMAG, 4= uuDIFF, 5= Rocking
+        """
+        status, message  = self._send_message(f"SelectFunctionMode:{mode}")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")   
+    def SetSelector(self, value : int):
+        """
+         (int) mag or camera length or rocking angle number value.
+        """
+        status, message  = self._send_message(f"SetSelector:{value}")
+        if status == "OK":
+            return message
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")  
+
+    def GetSpotSize(self):
+        """
+        Get spot size number. 0-7
+        """
+        status, message  = self._send_message("GetSpotSize")
+        if status == "OK":
+            return int(message)
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+    def GetAlpha(self):
+        """
+        Get alpha number. 0-8
+        """
+        status, message  = self._send_message("GetAlpha")
+        if status == "OK":
+            return int(message)
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
     # END EOS
     # --------------------- LENS ---------------------
 
@@ -184,6 +280,39 @@ class TEMClient:
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
 
+    def GetIL3(self) -> int:
+        """
+        IL3 value(0-65535).
+        """
+        status, message = self._send_message('GetIL3')
+        if status == "OK":
+            val = int(message)
+            return val
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
+    def GetOLf(self) -> int:
+        """
+        GetOLf value(0-65535).
+        """
+        status, message = self._send_message('GetOLf')
+        if status == "OK":
+            val = int(message)
+            return val
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+    
+    def GetOLc(self) -> int:
+        """
+        GetOLc value(0-65535).
+        """
+        status, message = self._send_message('GetOLc')
+        if status == "OK":
+            val = int(message)
+            return val
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")
+
     # END LENS
     # ---------------------- DEF ----------------------
 
@@ -195,9 +324,7 @@ class TEMClient:
         """
         status, message = self._send_message('GetILs')
         if status == "OK":
-            message = message.replace("'", '"')
-            res = json.loads(message)
-            return res
+            return unpack_json(message)
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
         
@@ -220,9 +347,7 @@ class TEMClient:
         """
         status, message = self._send_message('GetPLA')
         if status == "OK":
-            message = message.replace("'", '"')
-            res = json.loads(message)
-            return res
+            return unpack_json(message)
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
 
@@ -247,15 +372,20 @@ class TEMClient:
         else:   
             raise ValueError(f"Unexpected reply: {status}:{message}")
         
-def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("host")
-    parser.add_argument("-p", "--port", default = 3535)
-    args = parser.parse_args()
-    c = TEMClient(args.host, args.port)
-    c.ping()
 
-if __name__ == "__main__":
-    main()
 
+    # END DEF
+    # ---------------------- APT ----------------------     
+
+    def GetAperatureSize(self, index):
+        """
+        index : int aperture kind. 
+        1= CLA, 2= OLA, 3= HCA, 4= SAA, 5= ENTA, 6= EDS
+
+        returns: Selected aperture’s hole number. 0= Open, 1-4= hole index
+        """
+        status, message  = self._send_message(f"GetAperatureSize:{index}")
+        if status == "OK":
+            return int(message)
+        else:   
+            raise ValueError(f"Unexpected reply: {status}:{message}")

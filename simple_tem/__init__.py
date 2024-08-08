@@ -1,1 +1,1 @@
-from .tem_client import TEMClient
+from .TEMClient import TEMClient

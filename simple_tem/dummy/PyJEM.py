@@ -13,12 +13,29 @@ class Stage3:
             raise ValueError("SetZReal needs a float")
         return
     
+    def SetXRel(self, value):
+        if not isinstance(value, float):
+            raise ValueError("SetXReal needs a float")
+        return
+    
     def SetTXRel(self, value):
         if not isinstance(value, float):
             raise ValueError("SetTXReal needs a float")
         return
     
     def SetTiltXAngle(self, val):
+        return
+    
+    def Getf1OverRateTxNum(self) -> int:
+        return 0
+
+    def Setf1OverRateTxNum(self, val):
+        return
+
+    def GetMovementValueMeasurementMethod(self):
+        return 0
+    
+    def Stop(self):
         return
     
 class EOS3:
@@ -28,8 +45,22 @@ class EOS3:
     def GetMagValue(self):
         return [15000, 'X', 'X15k']
     
-    # def GetFunctionMode(self):
-    #     return 0
+    def GetFunctionMode(self):
+        return [4, 'DIFF']
+    
+    def SelectFunctionMode(self, mode):
+        if not isinstance(mode, int):
+            raise ValueError
+    
+    def SetSelector(self, value):
+        if not isinstance(value, int):
+            raise ValueError
+        
+    def GetSpotSize(self):
+        return 3
+
+    def GetAlpha(self):
+        return 4
 
 class Lens3:
     def __init__(self):
@@ -46,6 +77,15 @@ class Lens3:
     
     def GetIL1(self):
         return 0xFFF0
+
+    def GetIL3(self):
+        return 1234
+    
+    def GetOLf(self):
+        return 12345
+    
+    def GetOLc(self):
+        return 2345
     
 
 
@@ -75,6 +115,16 @@ class Def3:
     def GetBeamBlank(self):
         return 1
     
+class Apt3:
+    def __init__(self):
+        pass
+
+    def GetSize(self, index):
+        if index == 0:
+            return 2
+        else:
+            return 3
+
 
 class TEM3:
     def __init__(self):
@@ -84,7 +134,7 @@ class TEM3:
         return 0
     @staticmethod
     def Apt3():
-        return 0
+        return Apt3()
     @staticmethod
     def Stage3():
         return Stage3()
