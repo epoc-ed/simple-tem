@@ -21,3 +21,16 @@ c.stage_position #read position
 c.SetILs(21500, 24500)
 ...
 ```
+
+## Tests
+
+**Using Python 3.5 Launch the tem server in dummy mode**
+
+```bash
+python tem-server.py -d
+```
+
+**From your normal env run the tests**
+```bash
+python -m pytest
+```
