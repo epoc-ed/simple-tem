@@ -111,4 +111,7 @@ def test_GetAperatureSize(client):
     assert client.GetAperatureSize(0) == 2
     assert client.GetAperatureSize(1) == 3
 
-
+# ---------------------- GENERAL ----------------------
+def test_UnknownFunctionRaisesException(client):
+    with pytest.raises(Exception):
+        client.UnknownFunction()
