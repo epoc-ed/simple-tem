@@ -8,14 +8,33 @@ import argparse
 class TEMServer:
     _IL1_DEFAULT = 21902
     #List of all commands that we can use
+    #we check against this list before 
+    #running anything
+    _stage_commands = ['GetStagePosition',
+                       'GetStageStatus', 
+                       'SetZRel',
+                       'SetTXRel',
+                       'SetTiltXAngle']
+    
+    _eos_commands = ['GetMagValue',]
+
+    _lens_commands = ['SetILFocus',
+                      'GetCL3',
+                      'GetIL1',
+                      ]
+    
+    _def_commands = ['GetILs',
+                     'SetILs', 
+                     'GetPLA',
+                     'GetBeamBlank',
+                     'SetBeamBlank',
+                     ]
+
     _commands = ['exit', 
                  'ping', 
-                 'GetStagePosition', 
-                 'SetILFocus', 
-                 'SetILs', 
-                 'GetMagValue',
-                 'SetZRel',
-                 'SetTXRel']
+                ]
+
+    _commands += _stage_commands + _eos_commands + _lens_commands + _def_commands
     
     def __init__(self, port):
 
@@ -89,6 +108,48 @@ class TEMServer:
         val = self._from_string("f", val)
         self.stage.SetTXRel(val)
         return "OK:{}".format(val)
+
+    def GetCL3(self):
+        #int 0-0xFFFF
+        val = self.lens.GetCL3()
+        return "OK:{}".format(val)
+    
+    def GetIL1(self):
+        #int 0-0xFFFF
+        val = self.lens.GetIL1()
+        return "OK:{}".format(val)
+    
+    def GetILs(self):
+        #(int,int) 0-0xFFFF
+        val = self.defl.GetILs()
+        return "OK:{}".format(val)
+    
+    def GetPLA(self):
+        #(int,int) 0-0xFFFF
+        val = self.defl.GetPLA()
+        return "OK:{}".format(val)
+    
+    def SetBeamBlank(self, blank):
+        #blanking status
+        #0 - OFF
+        #1 - ON
+        value = self._from_string("u2", blank) #TODO! force 0,1
+        self.defl.SetBeamBlank(value)
+        return "OK:{}".format(value)
+    
+    def GetBeamBlank(self):
+        #(int,int) 0-0xFFFF
+        val = self.defl.GetBeamBlank()
+        return "OK:{}".format(val)
+
+    def SetTiltXAngle(self, tilt : float):
+        value = self._from_string("f", tilt) 
+        self.stage.SetTiltXAngle(value)
+        return "OK:{}".format(value)
+    
+    def GetStageStatus(self):
+        stat = self.stage.GetStatus()
+        return "OK:{}".format(stat)
     
     def exit(self):
         """special case since we are exiting"""

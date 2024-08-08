@@ -6,7 +6,7 @@ class Stage3:
         return [1.1, 1.2, 1.3, 1.4, 1.5]
     
     def GetStatus(self):
-        return 0
+        return [0,0,0,0,0]
     
     def SetZRel(self, value):
         if not isinstance(value, float):
@@ -18,6 +18,9 @@ class Stage3:
             raise ValueError("SetTXReal needs a float")
         return
     
+    def SetTiltXAngle(self, val):
+        return
+    
 class EOS3:
     def __init__(self):
         pass
@@ -25,8 +28,8 @@ class EOS3:
     def GetMagValue(self):
         return [15000, 'X', 'X15k']
     
-    def GetFunctionMode(self):
-        return 0
+    # def GetFunctionMode(self):
+    #     return 0
 
 class Lens3:
     def __init__(self):
@@ -37,6 +40,14 @@ class Lens3:
             raise ValueError
         #TODO! check range
         pass 
+
+    def GetCL3(self):
+        return 0xFF00
+    
+    def GetIL1(self):
+        return 0xFFF0
+    
+
 
 class Def3:
     def __init__(self):
@@ -49,6 +60,21 @@ class Def3:
             raise ValueError
         #TODO! check range
         pass 
+
+    def GetILs(self) -> list:
+        return [21000,22000]
+    
+    def GetPLA(self) -> list:
+        return [25000,26000]
+
+    def SetBeamBlank(self, val):
+        if not isinstance(val, int):
+            raise ValueError
+        return
+    
+    def GetBeamBlank(self):
+        return 1
+    
 
 class TEM3:
     def __init__(self):
