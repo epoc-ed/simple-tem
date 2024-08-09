@@ -1,7 +1,6 @@
 import zmq
-from rich import print
-from .utils import unpack_json
 import json
+from rich import print
 from datetime import datetime
 
 class TEMClient:

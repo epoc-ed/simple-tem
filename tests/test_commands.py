@@ -1,5 +1,5 @@
 import pytest
-
+import time
 from simple_tem import TEMClient
 
 @pytest.fixture
@@ -35,7 +35,23 @@ def test_SetTXRel(client):
     client.SetTXRel(400)
 
 def test_SetTiltXAngle(client):
+    # Normal version of the command. 
+    # Should block for 2s 
+    t0 = time.perf_counter()
     client.SetTiltXAngle(33)
+    t1 = time.perf_counter()
+    assert t1-t0 > 1.5
+
+def test_SetTiltXAngle_async(client):
+    # Async version
+    # should return directly
+    t0 = time.perf_counter()
+    client.SetTiltXAngle(33, run_async = True)
+    t1 = time.perf_counter()
+    assert t1-t0 < .3
+
+def test_GetTiltXAngle(client):
+    assert client.GetTiltXAngle() == 1.4
 
 def test_Getf1OverRateTxNum(client):
     assert client.Getf1OverRateTxNum() == 0
