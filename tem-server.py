@@ -1,8 +1,23 @@
 import argparse
 from datetime import datetime
 import json
+import time
 import sys
 import zmq
+
+from multiprocessing import Process, Queue
+
+# from PyJEM import TEM3
+
+def rotate_async(q):
+    stage = TEM3.Stage3()
+    print('Rotate ready')
+    while True:
+        tilt = q.get()
+        print("ASYNC: Setting tilt angle: {}".format(tilt))
+        stage.SetTiltXAngle(tilt)
+        print("ASYNC: Rotation returned")
+        
 
 class TEMServer:
     _IL1_DEFAULT = 21902
@@ -22,10 +37,12 @@ class TEMServer:
         print("TEMServer binding to {} ".format(endpoint))
         self.socket.bind(endpoint)
 
+        self.q = Queue()
+        self._p = Process(target = rotate_async, args = (self.q,))
+        self._p.start()
+
         #Find all commands
         self._commands = [it for it in dir(self) if callable(getattr(self, it)) and not it.startswith('_')]
-
-        self._run()
     
     def _has_function(self, cmd):
         return cmd in self._commands
@@ -35,6 +52,17 @@ class TEMServer:
     
     def ping(self):
         return "pong"
+    
+    def _long(self):
+        print('sleeping')
+        time.sleep(5)
+        print('done')
+    
+    def sleep(self):
+        self.exec.submit(self._long)
+        # t.run()
+        # time.sleep(5)
+
 
     # --------------------- STAGE ---------------------
 
@@ -50,11 +78,17 @@ class TEMServer:
     def SetXRel(self, val : float):
         self.stage.SetXRel(val)
 
+    def SetYRel(self, val : float):
+        self.stage.SetYRel(val)
+
     def SetTXRel(self, val : float):
         self.stage.SetTXRel(val)
 
-    def SetTiltXAngle(self, tilt : float):
-        self.stage.SetTiltXAngle(tilt)
+    def SetTiltXAngle(self, tilt : float, run_async):
+        if run_async:
+            self.q.put(tilt)
+        else:
+            self.stage.SetTiltXAngle(tilt)
 
     def Getf1OverRateTxNum(self):
         return self.stage.Getf1OverRateTxNum()
@@ -142,6 +176,7 @@ class TEMServer:
     
     def _run(self):
         while True:
+            time.sleep(0.001)
             msgs = self.socket.recv_multipart()
             
             #If we didn't get two messages something is really wrong so lets 
@@ -186,5 +221,9 @@ if __name__ == "__main__":
         from simple_tem.dummy.PyJEM import TEM3
     else:
         from PyJEM import TEM3
+
+
     s = TEMServer(3535)
+    s._run()
+
 

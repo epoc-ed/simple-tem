@@ -1,4 +1,5 @@
 
+import time
 class Stage3:
     def __init__(self):
         pass
@@ -17,6 +18,11 @@ class Stage3:
         if not isinstance(value, (float, int)):
             raise ValueError("SetXReal needs a float or int")
         return
+
+    def SetYRel(self, value):
+        if not isinstance(value, (float, int)):
+            raise ValueError("SetYReal needs a float or int")
+        return
     
     def SetTXRel(self, value):
         if not isinstance(value, (float, int)):
@@ -24,6 +30,7 @@ class Stage3:
         return
     
     def SetTiltXAngle(self, val):
+        time.sleep(2)
         return
     
     def Getf1OverRateTxNum(self) -> int:

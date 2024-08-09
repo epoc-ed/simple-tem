@@ -25,7 +25,7 @@ c.SetILs(21500, 24500)
 ## Tests
 
 **Using Python 3.5 Launch the tem server in dummy mode**
-
+This is becaues the PyJEM env on the TEM PC is still Python 3.5
 ```bash
 python tem-server.py -d
 ```

@@ -2,18 +2,20 @@ import zmq
 from rich import print
 from .utils import unpack_json
 import json
+from datetime import datetime
 
 class TEMClient:
     _default_timeout = 1000 #1s
 
-    def __init__(self, host, port = 3535):
+    def __init__(self, host, port = 3535, verbose = True):
         self.host = host
         self.port = port
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.REQ)
-        self.verbose = True
+        self.verbose = verbose
 
-        self._set_default_timeout()
+        #Prone to leaving the socket in a bad state
+        # self.context = zmq.Context()
+        # self.socket = self.context.socket(zmq.REQ)
+        # self._set_unlimited_timeout()
         print(f"endpoint: {self.host}:{self.port}")
 
     def _set_default_timeout(self):
@@ -29,14 +31,18 @@ class TEMClient:
         cmd = cmd.encode('ascii')
         args = json.dumps(args).encode('ascii')
         if self.verbose:
-            print(f'[spring_green4]Sending: {cmd}, {args}[/spring_green4]')
+            print(f'[spring_green4]{self._now()} - REQ: {cmd}, {args}[/spring_green4]')
 
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.REQ)
+        #TODO! How to configure the timeout
+        self._set_unlimited_timeout()
         self.socket.connect(f"tcp://{self.host}:{self.port}")
         self.socket.send_multipart([cmd, args])
         reply = self.socket.recv_multipart()
         status, message = self._decode_reply(reply)
         if self.verbose:
-            print(f'[dark_orange3]Received: {status}:{message}[/dark_orange3]')
+            print(f'[dark_orange3]{self._now()} - REP: {status}:{message}[/dark_orange3]')
         self.socket.disconnect(f"tcp://{self.host}:{self.port}")
 
         self._check_error(status, message) #TODO! Add function
@@ -48,12 +54,18 @@ class TEMClient:
     def _check_error(self, status, message):
         if status != "OK":
             raise ValueError(f"Unexpected reply: {status}:{message}")
+        
+    def _now(self):
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def ping(self) -> bool:
         """
         Check if the server is alive, returns True or throws
         """
         return self._send_message("ping")
+    
+    def sleep(self) -> None:
+        self._send_message("sleep")
 
         
     def exit(self) -> None:
@@ -90,6 +102,10 @@ class TEMClient:
         # 
         return self._send_message('GetStageStatus')
 
+    @property
+    def stage_is_rotating(self):
+        return self._send_message('GetStageStatus')[3] == 1
+
     def SetZRel(self, val : float) -> None:
         """
         Relative move along Z axis.
@@ -104,6 +120,13 @@ class TEMClient:
         """
         self._send_message("SetXRel", val)
 
+    def SetYRel(self, val : float) -> None:
+        """
+        Relative move along Z axis.
+        Range:+-100000.0(nm)
+        """
+        self._send_message("SetYRel", val)
+
     def SetTXRel(self, val : float) -> None:
         """
         Relative tilt around X axis.
@@ -111,12 +134,17 @@ class TEMClient:
         """
         self._send_message("SetTXRel", val)
 
-    def SetTiltXAngle(self, val) -> None:
+    def SetTiltXAngle(self, val, run_async = False) -> None:
         """
         Set TiltX axis absolute value. range is +-90.00(degree)
         """
-        self._send_message("SetTiltXAngle", val)
+        self._send_message("SetTiltXAngle", val, run_async)
 
+    def GetTiltXAngle(self) -> float:
+        """
+        Get the  Tilt angle, alias for StagePos[3]
+        """
+        return self._send_message('GetStagePosition')[3]
 
     def Getf1OverRateTxNum(self):
         """

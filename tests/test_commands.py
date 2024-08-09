@@ -28,6 +28,9 @@ def test_SetZRel(client):
 def test_SetXRel(client):
     client.SetXRel(34010)
 
+def test_SetYRel(client):
+    client.SetYRel(34020)
+
 def test_SetTXRel(client):
     client.SetTXRel(400)
 
