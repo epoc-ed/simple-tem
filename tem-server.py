@@ -7,16 +7,28 @@ import zmq
 
 from multiprocessing import Process, Queue
 
+# TODO! Fix needing this import on Windows
 # from PyJEM import TEM3
 
 def rotate_async(q):
+    """
+    Meant to be launched in it's own process. Using multiprocessing.Procress
+    Fetches values from a Queue shared with the TEMServer and rotates to the 
+    specified tilt angle
+    """
     stage = TEM3.Stage3()
-    print('Rotate ready')
+    print('rotate_async: READY')
     while True:
         tilt = q.get()
+
+        #If we get a 'request_stop' we exit the loop to allow joing 
+        #the process 
+        if tilt == 'request_stop':
+            break
         print("ASYNC: Setting tilt angle: {}".format(tilt))
         stage.SetTiltXAngle(tilt)
         print("ASYNC: Rotation returned")
+    print("ASYNC: Bye!")
         
 
 class TEMServer:
@@ -52,17 +64,14 @@ class TEMServer:
     
     def ping(self):
         return "pong"
-    
-    def _long(self):
-        print('sleeping')
-        time.sleep(5)
-        print('done')
-    
-    def sleep(self):
-        self.exec.submit(self._long)
-        # t.run()
-        # time.sleep(5)
 
+    def exit_server(self):
+        """special case since we are exiting"""
+        #TODO! Fix exit msg
+        # self.socket.send_string("OK:Bye!")
+        # sys.exit()
+        self.q.put("request_stop")
+        return "Bye!"
 
     # --------------------- STAGE ---------------------
 
@@ -168,15 +177,9 @@ class TEMServer:
         self.defl.SetBeamBlank(blank)
 
     # END DEF_________________________________________
-
-    def exit(self):
-        """special case since we are exiting"""
-        self.socket.send_string("OK:Bye!")
-        sys.exit()
     
     def _run(self):
         while True:
-            time.sleep(0.001)
             msgs = self.socket.recv_multipart()
             
             #If we didn't get two messages something is really wrong so lets 
@@ -189,26 +192,31 @@ class TEMServer:
             args = json.loads(msgs[1].decode('ascii'))
             print("{} - REQ: {}, {}".format(self._now(), cmd, args))
 
-
-            # if the function in found we try to call it
             if self._has_function(cmd):
+                # if the function in found we try to call it
                 try:
                     res = getattr(self, cmd)(*args)
                     rc = TEMServer.STATUS_OK
                 except Exception as e:
                     rc = TEMServer.STATUS_ERROR
                     res = "Exception occoured when calling: {}. Error message: {}".format(cmd, e)
-            #Otherwise we return an error
             else:
+                #Otherwise we return an error
                 rc = TEMServer.STATUS_ERROR
                 res = "Function: {} not implemented".format(cmd)
 
             rc = json.dumps(rc).encode('ascii')
             res = json.dumps(res).encode('ascii')
             
-            # #Reply to the client
+            # Reply to the client
             print("{} - REP: {}, {}".format(self._now(), rc, res))
             self.socket.send_multipart([rc, res])
+
+
+            if cmd == 'exit_server':
+                self._p.join()
+                print("Process joined")
+                break
 
 
 if __name__ == "__main__":

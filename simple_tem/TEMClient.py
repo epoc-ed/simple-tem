@@ -11,12 +11,7 @@ class TEMClient:
         self.host = host
         self.port = port
         self.verbose = verbose
-
-        #Prone to leaving the socket in a bad state
-        # self.context = zmq.Context()
-        # self.socket = self.context.socket(zmq.REQ)
-        # self._set_unlimited_timeout()
-        print(f"endpoint: {self.host}:{self.port}")
+        print(f"TEMClient:endpoint: {self.host}:{self.port}")
 
     def _set_default_timeout(self):
         self.socket.setsockopt(zmq.SNDTIMEO, TEMClient._default_timeout)
@@ -68,11 +63,11 @@ class TEMClient:
         self._send_message("sleep")
 
         
-    def exit(self) -> None:
+    def exit_server(self) -> None:
         """
         Exit the server
         """
-        self._send_message("exit")
+        self._send_message("exit_server")
 
     def UnknownFunction(self):
         """
