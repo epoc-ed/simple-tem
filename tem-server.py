@@ -10,6 +10,26 @@ from multiprocessing import Process, Queue
 # TODO! Fix needing this import on Windows
 # from PyJEM import TEM3
 
+def now() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def set_tilt_angle(stage, tilt, max_speed):
+    if max_speed:
+        
+        prev_speed = stage.Getf1OverRateTxNum()
+        print("{} - Getting current speed: {}".format(now(), prev_speed))
+        print("{} - Setting max speed".format(now()))
+        stage.Setf1OverRateTxNum(0)
+        print("{} - Setting tilt angle: {}".format(now(), tilt))
+        stage.SetTiltXAngle(tilt)
+        print("{} - Restoring old speed: {}".format(now(), prev_speed))
+        stage.Setf1OverRateTxNum(prev_speed)
+        
+    else:
+        stage.SetTiltXAngle(tilt)
+
+
+
 def rotate_async(q, stage_factory):
     """
     Meant to be launched in it's own process. Using multiprocessing. The process
@@ -19,19 +39,21 @@ def rotate_async(q, stage_factory):
     The use of stage_factory is to allow for testing with a dummy stage.
     """
     stage = stage_factory()
-    print('ASYNC: process: READY')
+    print('{} - ASYNC: process: READY'.format(now()))
     while True:
-        tilt = q.get()
+        tilt, max_speed = q.get()
 
         #If we get a 'request_stop' we exit the loop to allow joining 
         #of the process 
         if tilt == 'request_stop':
             break
-        print("ASYNC: Setting tilt angle: {}".format(tilt))
-        stage.SetTiltXAngle(tilt)
+        print("{} - ASYNC: Setting tilt angle: {}, max_speed: {}".format(now(), tilt, max_speed))
+        set_tilt_angle(stage, tilt, max_speed)
         print("ASYNC: Rotation returned")
     print("ASYNC: Bye!")
         
+
+
 
 class TEMServer:
     _IL1_DEFAULT = 21902
@@ -48,7 +70,7 @@ class TEMServer:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
         endpoint = "tcp://*:{}".format(port)
-        print("TEMServer binding to {} ".format(endpoint))
+        print("{} - TEMServer binding to {} ".format(self._now(), endpoint))
         self.socket.bind(endpoint)
 
         self.q = Queue()
@@ -62,14 +84,14 @@ class TEMServer:
         return cmd in self._commands
 
     def _now(self):
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        return now()
     
     def ping(self):
         return "pong"
 
     def exit_server(self):
         """send 'request_stop' to the async process and return 'Bye!'"""
-        self.q.put("request_stop")
+        self.q.put(("request_stop", None)) #API expects a tuple with tilt and max_speed
         return "Bye!"
     
     
@@ -93,11 +115,11 @@ class TEMServer:
     def SetTXRel(self, val : float):
         self.stage.SetTXRel(val)
 
-    def SetTiltXAngle(self, tilt : float, run_async):
+    def SetTiltXAngle(self, tilt : float, run_async: bool, max_speed: bool):
         if run_async:
-            self.q.put(tilt)
+            self.q.put((tilt, max_speed))
         else:
-            self.stage.SetTiltXAngle(tilt)
+            set_tilt_angle(self.stage, tilt, max_speed)
 
     def Getf1OverRateTxNum(self):
         return self.stage.Getf1OverRateTxNum()

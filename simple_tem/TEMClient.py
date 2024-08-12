@@ -128,11 +128,11 @@ class TEMClient:
         """
         self._send_message("SetTXRel", val)
 
-    def SetTiltXAngle(self, val, run_async = False) -> None:
+    def SetTiltXAngle(self, val, run_async = False, max_speed = False) -> None:
         """
         Set TiltX axis absolute value. range is +-90.00(degree)
         """
-        self._send_message("SetTiltXAngle", val, run_async)
+        self._send_message("SetTiltXAngle", val, run_async, max_speed)
 
     def GetTiltXAngle(self) -> float:
         """
