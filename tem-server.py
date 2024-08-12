@@ -10,19 +10,21 @@ from multiprocessing import Process, Queue
 # TODO! Fix needing this import on Windows
 # from PyJEM import TEM3
 
-def rotate_async(q):
+def rotate_async(q, stage_factory):
     """
-    Meant to be launched in it's own process. Using multiprocessing.Procress
-    Fetches values from a Queue shared with the TEMServer and rotates to the 
-    specified tilt angle
+    Meant to be launched in it's own process. Using multiprocessing. The process
+    fetches values from a Queue shared with the TEMServer and rotates to the 
+    specified tilt angle. If the value is 'request_stop' the process will exit.
+
+    The use of stage_factory is to allow for testing with a dummy stage.
     """
-    stage = TEM3.Stage3()
-    print('rotate_async: READY')
+    stage = stage_factory()
+    print('ASYNC: process: READY')
     while True:
         tilt = q.get()
 
-        #If we get a 'request_stop' we exit the loop to allow joing 
-        #the process 
+        #If we get a 'request_stop' we exit the loop to allow joining 
+        #of the process 
         if tilt == 'request_stop':
             break
         print("ASYNC: Setting tilt angle: {}".format(tilt))
@@ -50,7 +52,7 @@ class TEMServer:
         self.socket.bind(endpoint)
 
         self.q = Queue()
-        self._p = Process(target = rotate_async, args = (self.q,))
+        self._p = Process(target = rotate_async, args = (self.q, TEM3.Stage3))
         self._p.start()
 
         #Find all commands
@@ -66,13 +68,11 @@ class TEMServer:
         return "pong"
 
     def exit_server(self):
-        """special case since we are exiting"""
-        #TODO! Fix exit msg
-        # self.socket.send_string("OK:Bye!")
-        # sys.exit()
+        """send 'request_stop' to the async process and return 'Bye!'"""
         self.q.put("request_stop")
         return "Bye!"
-
+    
+    
     # --------------------- STAGE ---------------------
 
     def GetStagePosition(self):

@@ -4,14 +4,14 @@
 - Synchronous execution for all commands 
 - Supports run_async = True for SetTiltXAngle 
 - might be turned into a conda pkg once stable
+- PyJEM API: https://pyjem.github.io/PyJEM/interface/PyJEM.TEM3.html
 
 
 ## usage
 
 **Server**
 
-Copy tem-server.py to the machine where
-PyJEM is installed
+Copy tem-server.py to the machine where PyJEM is installed
 
 **Client**
 Make sure the simple-tem folder is added to PYTHONPATH (or conda pkg installed)
