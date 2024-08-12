@@ -5,6 +5,7 @@ from datetime import datetime
 
 class TEMClient:
     _default_timeout = 1000 #1s
+    encoding = 'ascii'
 
     def __init__(self, host, port = 3535, verbose = True):
         self.host = host
@@ -22,8 +23,8 @@ class TEMClient:
 
     def _send_message(self, cmd, *args):
         
-        cmd = cmd.encode('ascii')
-        args = json.dumps(args).encode('ascii')
+        cmd = cmd.encode(TEMClient.encoding)
+        args = json.dumps(args).encode(TEMClient.encoding)
         if self.verbose:
             print(f'[spring_green4]{self._now()} - REQ: {cmd}, {args}[/spring_green4]')
 
@@ -120,12 +121,14 @@ class TEMClient:
         """
         self._send_message("SetYRel", val)
 
-    def SetTXRel(self, val : float) -> None:
+    def SetTXRel(self, val : float, run_async: bool = False, max_speed: bool = False) -> None:
         """
         Relative tilt around X axis.
         tilt-x relative value. range is +-90.00.0(degree)
+        run_async: run the command asynchronously and return immediately
+        max_speed: rotate at maximum speed, restore previous speed after rotation
         """
-        self._send_message("SetTXRel", val)
+        self._send_message("SetTXRel", val, run_async, max_speed)
 
     def SetTiltXAngle(self, val, run_async = False, max_speed = False) -> None:
         """

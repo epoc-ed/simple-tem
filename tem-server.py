@@ -1,31 +1,29 @@
 import argparse
 from datetime import datetime
 import json
-import time
 import sys
 import zmq
 
 from multiprocessing import Process, Queue
 
-# TODO! Fix needing this import on Windows
-# from PyJEM import TEM3
-
 def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-def set_tilt_angle(stage, tilt, max_speed):
+def set_tilt_angle(stage, tilt, max_speed=False, relative=False):
     """
     Helper function to set the tilt angle with either max_speed or the 
     previous speed. The previous speed is stored and restored after the
     tilt is set.
     """
+    rotate = stage.SetTXRel if relative else stage.SetTiltXAngle
+
     if max_speed:
         prev_speed = stage.Getf1OverRateTxNum()
         print("{} - Getting current speed: {}".format(now(), prev_speed))
         print("{} - Setting max speed".format(now()))
         stage.Setf1OverRateTxNum(0)
-        print("{} - Setting tilt angle: {}".format(now(), tilt))
-        stage.SetTiltXAngle(tilt)
+        print("{} - Setting tilt angle: {} relative: {}".format(now(), tilt, relative))
+        rotate(tilt)
         print("{} - Restoring old speed: {}".format(now(), prev_speed))
         stage.Setf1OverRateTxNum(prev_speed)
         
@@ -44,14 +42,14 @@ def rotate_async(q, stage_factory):
     stage = stage_factory()
     print('{} - ASYNC: process: READY'.format(now()))
     while True:
-        tilt, max_speed = q.get()
+        tilt, max_speed, relative = q.get()
 
         #If we get a 'request_stop' we exit the loop to allow joining 
         #of the process 
         if tilt == 'request_stop':
             break
         print("{} - ASYNC: Setting tilt angle: {}, max_speed: {}".format(now(), tilt, max_speed))
-        set_tilt_angle(stage, tilt, max_speed)
+        set_tilt_angle(stage, tilt, max_speed, relative)
         print("ASYNC: Rotation returned")
     print("ASYNC: Bye!")
         
@@ -95,8 +93,10 @@ class TEMServer:
 
     def exit_server(self):
         """send 'request_stop' to the async process and return 'Bye!'"""
-        self.q.put(("request_stop", None)) #API expects a tuple with tilt and max_speed
+        #API expects a tuple with tilt and max_speed and if relative rotation or not
+        self.q.put(("request_stop", None, None)) 
         return "Bye!"
+        
     
     
     # --------------------- STAGE ---------------------
@@ -116,12 +116,15 @@ class TEMServer:
     def SetYRel(self, val : float):
         self.stage.SetYRel(val)
 
-    def SetTXRel(self, val : float):
-        self.stage.SetTXRel(val)
+    def SetTXRel(self, val : float, run_async: bool, max_speed: bool):
+        if run_async:
+            self.q.put((val, max_speed, True))
+        else:
+            set_tilt_angle(self.stage, val, max_speed, relative=True)
 
     def SetTiltXAngle(self, tilt : float, run_async: bool, max_speed: bool):
         if run_async:
-            self.q.put((tilt, max_speed))
+            self.q.put((tilt, max_speed, False))
         else:
             set_tilt_angle(self.stage, tilt, max_speed)
 
