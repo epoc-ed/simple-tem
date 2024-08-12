@@ -16,7 +16,6 @@ def set_tilt_angle(stage, tilt, max_speed=False, relative=False):
     tilt is set.
     """
     rotate = stage.SetTXRel if relative else stage.SetTiltXAngle
-    print(rotate)
 
     if max_speed:
         prev_speed = stage.Getf1OverRateTxNum()
