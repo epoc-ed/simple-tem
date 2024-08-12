@@ -14,8 +14,12 @@ def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def set_tilt_angle(stage, tilt, max_speed):
+    """
+    Helper function to set the tilt angle with either max_speed or the 
+    previous speed. The previous speed is stored and restored after the
+    tilt is set.
+    """
     if max_speed:
-        
         prev_speed = stage.Getf1OverRateTxNum()
         print("{} - Getting current speed: {}".format(now(), prev_speed))
         print("{} - Setting max speed".format(now()))
@@ -27,7 +31,6 @@ def set_tilt_angle(stage, tilt, max_speed):
         
     else:
         stage.SetTiltXAngle(tilt)
-
 
 
 def rotate_async(q, stage_factory):
@@ -59,6 +62,7 @@ class TEMServer:
     _IL1_DEFAULT = 21902
     STATUS_OK = 'OK'
     STATUS_ERROR = 'ERROR'
+    encoding = 'ascii'
 
     def __init__(self, port):
         self.stage = TEM3.Stage3()
@@ -210,8 +214,8 @@ class TEMServer:
                 print("TEMServer got: {} messages. Should always be 2 -> EXIT".format(len(msgs)))
                 sys.exit(1)
 
-            cmd = msgs[0].decode('ascii')
-            args = json.loads(msgs[1].decode('ascii'))
+            cmd = msgs[0].decode(TEMServer.encoding)
+            args = json.loads(msgs[1].decode(TEMServer.encoding))
             print("{} - REQ: {}, {}".format(self._now(), cmd, args))
 
             if self._has_function(cmd):
@@ -227,8 +231,8 @@ class TEMServer:
                 rc = TEMServer.STATUS_ERROR
                 res = "Function: {} not implemented".format(cmd)
 
-            rc = json.dumps(rc).encode('ascii')
-            res = json.dumps(res).encode('ascii')
+            rc = json.dumps(rc).encode(TEMServer.encoding)
+            res = json.dumps(res).encode(TEMServer.encoding)
             
             # Reply to the client
             print("{} - REP: {}, {}".format(self._now(), rc, res))

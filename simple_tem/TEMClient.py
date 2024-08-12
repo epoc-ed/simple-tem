@@ -38,7 +38,6 @@ class TEMClient:
         if self.verbose:
             print(f'[dark_orange3]{self._now()} - REP: {status}:{message}[/dark_orange3]')
         self.socket.disconnect(f"tcp://{self.host}:{self.port}")
-
         self._check_error(status, message) #TODO! Add function
         return message
 
@@ -131,6 +130,8 @@ class TEMClient:
     def SetTiltXAngle(self, val, run_async = False, max_speed = False) -> None:
         """
         Set TiltX axis absolute value. range is +-90.00(degree)
+        run_async: run the command asynchronously and return immediately
+        max_speed: rotate at maximum speed, restore previous speed after rotation
         """
         self._send_message("SetTiltXAngle", val, run_async, max_speed)
 
@@ -147,7 +148,6 @@ class TEMClient:
         """
         return self._send_message("Getf1OverRateTxNum")
 
-
     def Setf1OverRateTxNum(self, val) -> None:
         """
         Set drive frequency f1 of TiltX.
@@ -160,7 +160,6 @@ class TEMClient:
         method. 0= encoder, 1= potens
         """
         return self._send_message("GetMovementValueMeasurementMethod")
-
 
     def StopStage(self) -> None:
         """Stop all the drives."""
