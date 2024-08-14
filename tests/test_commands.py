@@ -2,68 +2,11 @@ import pytest
 import time
 from simple_tem import TEMClient
 
-@pytest.fixture
-def client():
-    return TEMClient('localhost')
-
 
 def test_ping_returns_true(client):
     res = client.ping()
     assert res
 
-
-# --------------------- STAGE ---------------------
-
-def test_GetStagePosition(client):
-    pos = client.GetStagePosition()
-    assert pos == [1.1, 1.2, 1.3, 1.4, 1.5]
-
-def test_GetStageStatus(client):
-    stat = client.GetStageStatus()
-    assert stat == [0,0,0,0,0]
-
-def test_SetZRel(client):
-    client.SetZRel(400)
-
-def test_SetXRel(client):
-    client.SetXRel(34010)
-
-def test_SetYRel(client):
-    client.SetYRel(34020)
-
-def test_SetTXRel(client):
-    client.SetTXRel(400)
-
-def test_SetTiltXAngle(client):
-    # Normal version of the command. 
-    # Should block for 2s 
-    t0 = time.perf_counter()
-    client.SetTiltXAngle(33)
-    t1 = time.perf_counter()
-    assert t1-t0 > 1.5
-
-def test_SetTiltXAngle_async(client):
-    # Async version
-    # should return directly
-    t0 = time.perf_counter()
-    client.SetTiltXAngle(33, run_async = True)
-    t1 = time.perf_counter()
-    assert t1-t0 < .3
-
-def test_GetTiltXAngle(client):
-    assert client.GetTiltXAngle() == 1.4
-
-def test_Getf1OverRateTxNum(client):
-    assert client.Getf1OverRateTxNum() == 0
-
-def test_Setf1OverRateTxNum(client):
-    client.Setf1OverRateTxNum(5)
-
-def test_GetMovementValueMeasurementMethod(client):
-    assert client.GetMovementValueMeasurementMethod() == 0
-
-def test_StopStage(client):
-    client.StopStage()
 # ---------------------- EOS ----------------------
 
 def test_GetMagValue(client):
@@ -119,10 +62,13 @@ def test_GetPLA(client):
     assert client.GetPLA() == [25000,26000]
 
 def test_GetBeamBlank(client):
-    assert client.GetBeamBlank() == 1
+    assert client.GetBeamBlank() == 0 # gets set to 0 in the fixture
 
 def test_SetBeamBlank(client):
+    client.SetBeamBlank(1)
+    assert client.GetBeamBlank() == 1
     client.SetBeamBlank(0)
+    assert client.GetBeamBlank() == 0
 
 # ---------------------- APT ----------------------
 

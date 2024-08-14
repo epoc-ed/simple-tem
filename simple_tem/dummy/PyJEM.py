@@ -1,13 +1,59 @@
 
 import time
+
+
+#Needed to synchronize values between processes
+import redis
+
+class PyJEM_DummyConf:
+    redis_port = 5454
+
+def redis_init():
+    r = redis.Redis(port = PyJEM_DummyConf.redis_port)
+    if r.get("x_angle") is None:
+        r.set("x_angle", 0)
+    if r.get("f1OverRateTxNum") is None:
+        r.set("f1OverRateTxNum", 0)
+    if r.get("x_is_rotating") is None:
+        r.set("x_is_rotating", 0)
+    if r.get("beam_blank") is None:
+        r.set("beam_blank", 0)
+    if r.get("stop_stage") is None:
+        r.set("stop_stage", 0)
+redis_init()
+
+
 class Stage3:
+    _degrees_per_second = [10, 2, 1, 0.5, 0.25, 0.1]
+
     def __init__(self):
-        pass
+        self.redis = redis.Redis(port = PyJEM_DummyConf.redis_port)
+
+    def _rotate(self, target_angle):
+        current_angle = float(self.redis.get("x_angle"))
+        if current_angle == target_angle:
+            return
+        else:
+            n_steps = 50
+            step = (target_angle-current_angle) / n_steps
+            self.redis.set("x_is_rotating", 1)
+            for i in range(n_steps):
+                self.redis.incrbyfloat("x_angle", step)
+                print("rotate: incremented x_angle by ", step)
+                #Read speed each time to account for changes
+                t = abs(step/self._degrees_per_second[self.Getf1OverRateTxNum()])
+                time.sleep(t)
+                if int(self.redis.get("stop_stage")):
+                    self.redis.set("stop_stage", 0)
+                    print("rotate: stage stopped")
+                    break
+            self.redis.set("x_is_rotating", 0)
+
     def GetPos(self):
-        return [1.1, 1.2, 1.3, 1.4, 1.5]
+        return [1.1, 1.2, 1.3, float(self.redis.get('x_angle')), 1.5]
     
     def GetStatus(self):
-        return [0,0,0,0,0]
+        return [0,0,0,int(self.redis.get("x_is_rotating")),0]
     
     def SetZRel(self, value):
         if not isinstance(value, (float, int)):
@@ -27,23 +73,29 @@ class Stage3:
     def SetTXRel(self, value):
         if not isinstance(value, (float, int)):
             raise ValueError("SetTXReal needs a float or int")
-        return
+        current_angle = float(self.redis.get("x_angle"))
+        self._rotate(current_angle + value)
     
     def SetTiltXAngle(self, val):
-        time.sleep(2)
-        return
+        #TODO! deal with concurrent access
+        self._rotate(val)
     
     def Getf1OverRateTxNum(self) -> int:
-        return 0
+        #0= 10(/sec), 1= 2(/sec), 2= 1(/sec), 3= 0.5(/sec), 4= 0.25(/sec), 5= 0.1(/sec)
+        return int(self.redis.get("f1OverRateTxNum"))
 
     def Setf1OverRateTxNum(self, val):
-        return
+        #0= 10(/sec), 1= 2(/sec), 2= 1(/sec), 3= 0.5(/sec), 4= 0.25(/sec), 5= 0.1(/sec)
+        self.redis.set("f1OverRateTxNum", val)
 
     def GetMovementValueMeasurementMethod(self):
         return 0
     
     def Stop(self):
-        return
+        if int(self.redis.get("x_is_rotating")):
+            self.redis.set("stop_stage", 1)
+    
+    
     
 class EOS3:
     def __init__(self):
@@ -98,7 +150,7 @@ class Lens3:
 
 class Def3:
     def __init__(self):
-        pass
+        self.redis = redis.Redis(port = PyJEM_DummyConf.redis_port)
 
     def SetILs(self, stig_x, stig_y):
         if not isinstance(stig_x, int):
@@ -117,10 +169,10 @@ class Def3:
     def SetBeamBlank(self, val):
         if not isinstance(val, int):
             raise ValueError
-        return
+        self.redis.set("beam_blank", val)
     
     def GetBeamBlank(self):
-        return 1
+        return int(self.redis.get("beam_blank"))
     
 class Apt3:
     def __init__(self):

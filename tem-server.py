@@ -24,6 +24,7 @@ def set_tilt_angle(stage, tilt, max_speed=False, relative=False):
         stage.Setf1OverRateTxNum(0)
         print("{} - Setting tilt angle: {} relative: {}".format(now(), tilt, relative))
         rotate(tilt)
+        #TODO! Add workaround for PyJEM immediately return
         print("{} - Restoring old speed: {}".format(now(), prev_speed))
         stage.Setf1OverRateTxNum(prev_speed)
         

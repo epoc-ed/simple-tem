@@ -34,8 +34,17 @@ c.SetTiltXAngle(40, run_async = True)
 
 ## Tests
 
+**Start a local redis instance on port 5454**
+
+This is used to hold values that we pretend to send to the microscope
+
+```bash
+redis-server --port 5454
+```
+
 **Using Python 3.5 Launch the tem server in dummy mode**
-This is becaues the PyJEM env on the TEM PC is still Python 3.5
+This is becaues the PyJEM env on the TEM PC is still Python 3.5. Of course if you want to test functtionallity without verifying python 3.5 compatibility you can use a later version of python.
+
 ```bash
 python tem-server.py -d
 ```
