@@ -36,6 +36,7 @@ class Stage3:
         else:
             n_steps = 50
             step = (target_angle-current_angle) / n_steps
+            self.redis.set("stop_stage", 0) #potential race condition
             self.redis.set("x_is_rotating", 1)
             for i in range(n_steps):
                 self.redis.incrbyfloat("x_angle", step)
