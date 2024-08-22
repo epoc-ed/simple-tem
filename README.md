@@ -30,6 +30,13 @@ c.SetTiltXAngle(0)
 #No wait
 c.SetTiltXAngle(40, run_async = True)
 ...
+
+# Check if we can talk to the sever before issuing a command
+if c.is_alive:
+    c.Sec.SetTiltXAngle(40, run_async = True)
+else:
+    raise SomeKindOfException
+
 ```
 
 ## Tests

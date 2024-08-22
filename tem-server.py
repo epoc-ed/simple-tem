@@ -229,7 +229,7 @@ class TEMServer:
                     rc = TEMServer.STATUS_OK
                 except Exception as e:
                     rc = TEMServer.STATUS_ERROR
-                    res = "Exception occoured when calling: {}. Error message: {}".format(cmd, e)
+                    res = "Exception occurred when calling: {}. Error message: {}".format(cmd, e)
             else:
                 #Otherwise we return an error
                 rc = TEMServer.STATUS_ERROR

@@ -5,6 +5,7 @@ from datetime import datetime
 
 class TEMClient:
     _default_timeout = 1000 #1s
+    _ping_timeout = 1000 #1s
     encoding = 'ascii'
 
     def __init__(self, host, port = 3535, verbose = True):
@@ -13,33 +14,36 @@ class TEMClient:
         self.verbose = verbose
         print(f"TEMClient:endpoint: {self.host}:{self.port}")
 
-    def _set_default_timeout(self):
-        self.socket.setsockopt(zmq.SNDTIMEO, TEMClient._default_timeout)
-        self.socket.setsockopt(zmq.RCVTIMEO, TEMClient._default_timeout)
 
-    def _set_unlimited_timeout(self):
-        self.socket.setsockopt(zmq.SNDTIMEO, -1)
-        self.socket.setsockopt(zmq.RCVTIMEO, -1)
-
-    def _send_message(self, cmd, *args):
+    def _send_message(self, cmd, *args, timeout_ms = -1):
         
         cmd = cmd.encode(TEMClient.encoding)
         args = json.dumps(args).encode(TEMClient.encoding)
         if self.verbose:
             print(f'[spring_green4]{self._now()} - REQ: {cmd}, {args}[/spring_green4]')
 
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.REQ)
-        #TODO! How to configure the timeout
-        self._set_unlimited_timeout()
-        self.socket.connect(f"tcp://{self.host}:{self.port}")
-        self.socket.send_multipart([cmd, args])
-        reply = self.socket.recv_multipart()
-        status, message = self._decode_reply(reply)
-        if self.verbose:
-            print(f'[dark_orange3]{self._now()} - REP: {status}:{message}[/dark_orange3]')
-        self.socket.disconnect(f"tcp://{self.host}:{self.port}")
-        self._check_error(status, message) #TODO! Add function
+        context = zmq.Context()
+        socket = context.socket(zmq.REQ)
+        socket.setsockopt(zmq.SNDTIMEO, timeout_ms)
+        socket.setsockopt(zmq.RCVTIMEO, timeout_ms)
+        socket.setsockopt(zmq.LINGER, 0)
+        socket.connect(f"tcp://{self.host}:{self.port}")
+
+        try:
+            socket.send_multipart([cmd, args])
+            reply = socket.recv_multipart()
+            status, message = self._decode_reply(reply)
+            if self.verbose:
+                print(f'[dark_orange3]{self._now()} - REP: {status}:{message}[/dark_orange3]')
+            self._check_error(status, message) #TODO! Add function
+        
+        except zmq.error.Again:
+            raise TimeoutError(f"Timeout while waiting for reply from {self.host}:{self.port}")
+        
+        finally:
+            socket.disconnect(f"tcp://{self.host}:{self.port}")
+            context.destroy()
+        
         return message
 
     def _decode_reply(self, reply):
@@ -52,12 +56,24 @@ class TEMClient:
     def _now(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def ping(self) -> bool:
+    def ping(self, timeout_ms = None) -> bool:
         """
-        Check if the server is alive, returns True or throws
+        Check if the server is alive and accepts commands
+        Default is a 1s timeout
         """
-        return self._send_message("ping")
-    
+        if timeout_ms is None:
+            timeout_ms = TEMClient._ping_timeout
+        
+        try: 
+            rep =  self._send_message("ping", timeout_ms=timeout_ms)
+            return rep == "pong"
+        except (TimeoutError):
+            return False
+
+    @property
+    def is_alive(self):
+        return self.ping()
+
     def sleep(self) -> None:
         self._send_message("sleep")
 
