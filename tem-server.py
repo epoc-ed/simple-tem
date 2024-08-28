@@ -73,7 +73,10 @@ def rotate_async(q, stage_factory):
         if tilt == 'request_stop':
             break
         print("{} - ASYNC: Setting tilt angle: {}, max_speed: {}".format(now(), tilt, max_speed))
-        set_tilt_angle(stage, tilt, max_speed, relative)
+        try:
+            set_tilt_angle(stage, tilt, max_speed, relative)
+        except Exception as e:
+            print("ASYNC: Setting tile angle failed with: {}".format(e))
         print("ASYNC: Rotation returned")
     print("ASYNC: Bye!")
         
