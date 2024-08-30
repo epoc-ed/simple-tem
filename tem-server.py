@@ -12,75 +12,6 @@ from multiprocessing import Process, Queue
 def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-def try_n_times(func, args, n, wait_time=0.1):
-    """
-    Try calling a python function (or any callable) n times 
-    with a wait time between each try. If the function fails
-    on the last call the exception is re-raised.
-    """
-    while n:
-        try:
-            return func(*args)
-        except Exception as e:
-            print("Called: {} with args: {} failed with: {}".format(func, args, e))
-            n -= 1
-
-            #If this was the last try re-raise the exception
-            if not n:
-                raise e
-            time.sleep(wait_time)
-
-
-def set_tilt_angle(stage, tilt, max_speed=False, relative=False):
-    """
-    Helper function to set the tilt angle with either max_speed or the 
-    previous speed. The previous speed is stored and restored after the
-    tilt is set.
-    """
-    rotate = stage.SetTXRel if relative else stage.SetTiltXAngle
-
-    if max_speed:
-        # prev_speed = stage.Getf1OverRateTxNum()
-        prev_speed = try_n_times(stage.Getf1OverRateTxNum, (), 5)
-        print("{} - Getting current speed: {}".format(now(), prev_speed))
-        print("{} - Setting max speed".format(now()))
-        stage.Setf1OverRateTxNum(0)
-        print("{} - Setting tilt angle: {} relative: {}".format(now(), tilt, relative))
-        rotate(tilt)
-        #TODO! Add workaround for PyJEM immediately return
-        print("{} - Restoring old speed: {}".format(now(), prev_speed))
-        stage.Setf1OverRateTxNum(prev_speed)
-        
-    else:
-        rotate(tilt)
-
-
-def rotate_async(q, stage_factory):
-    """
-    Meant to be launched in it's own process. Using multiprocessing. The process
-    fetches values from a Queue shared with the TEMServer and rotates to the 
-    specified tilt angle. If the value is 'request_stop' the process will exit.
-
-    The use of stage_factory is to allow for testing with a dummy stage.
-    """
-    stage = stage_factory()
-    print('{} - ASYNC: process: READY'.format(now()))
-    while True:
-        tilt, max_speed, relative = q.get()
-
-        #If we get a 'request_stop' we exit the loop to allow joining 
-        #of the process 
-        if tilt == 'request_stop':
-            break
-        print("{} - ASYNC: Setting tilt angle: {}, max_speed: {}".format(now(), tilt, max_speed))
-        try:
-            set_tilt_angle(stage, tilt, max_speed, relative)
-        except Exception as e:
-            print("ASYNC: Setting tile angle failed with: {}".format(e))
-        print("ASYNC: Rotation returned")
-    print("ASYNC: Bye!")
-        
-
 
 
 class TEMServer:
@@ -102,10 +33,6 @@ class TEMServer:
         print("{} - TEMServer binding to {} ".format(self._now(), endpoint))
         self.socket.bind(endpoint)
 
-        self.q = Queue()
-        self._p = Process(target = rotate_async, args = (self.q, TEM3.Stage3))
-        self._p.start()
-
         #Find all commands
         self._commands = [it for it in dir(self) if callable(getattr(self, it)) and not it.startswith('_')]
     
@@ -119,9 +46,6 @@ class TEMServer:
         return "pong"
 
     def exit_server(self):
-        """send 'request_stop' to the async process and return 'Bye!'"""
-        #API expects a tuple with tilt and max_speed and if relative rotation or not
-        self.q.put(("request_stop", None, None)) 
         return "Bye!"
         
     
@@ -143,17 +67,11 @@ class TEMServer:
     def SetYRel(self, val : float):
         self.stage.SetYRel(val)
 
-    def SetTXRel(self, val : float, run_async: bool, max_speed: bool):
-        if run_async:
-            self.q.put((val, max_speed, True))
-        else:
-            set_tilt_angle(self.stage, val, max_speed, relative=True)
+    def SetTXRel(self, val : float):
+        self.stage.SetTXRel(val)
 
-    def SetTiltXAngle(self, tilt : float, run_async: bool, max_speed: bool):
-        if run_async:
-            self.q.put((tilt, max_speed, False))
-        else:
-            set_tilt_angle(self.stage, tilt, max_speed)
+    def SetTiltXAngle(self, tilt : float):
+        self.stage.SetTiltXAngle(tilt)
 
     def Getf1OverRateTxNum(self):
         return self.stage.Getf1OverRateTxNum()

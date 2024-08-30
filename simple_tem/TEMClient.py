@@ -137,22 +137,18 @@ class TEMClient:
         """
         self._send_message("SetYRel", val)
 
-    def SetTXRel(self, val : float, run_async: bool = False, max_speed: bool = False) -> None:
+    def SetTXRel(self, val : float) -> None:
         """
         Relative tilt around X axis.
         tilt-x relative value. range is +-90.00.0(degree)
-        run_async: run the command asynchronously and return immediately
-        max_speed: rotate at maximum speed, restore previous speed after rotation
         """
-        self._send_message("SetTXRel", val, run_async, max_speed)
+        self._send_message("SetTXRel", val)
 
-    def SetTiltXAngle(self, val, run_async = False, max_speed = False) -> None:
+    def SetTiltXAngle(self, val) -> None:
         """
         Set TiltX axis absolute value. range is +-90.00(degree)
-        run_async: run the command asynchronously and return immediately
-        max_speed: rotate at maximum speed, restore previous speed after rotation
         """
-        self._send_message("SetTiltXAngle", val, run_async, max_speed)
+        self._send_message("SetTiltXAngle", val)
 
     def GetTiltXAngle(self) -> float:
         """
