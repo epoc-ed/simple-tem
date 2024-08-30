@@ -1,13 +1,35 @@
+# TEM server that listens to commands on a zeromq socket and
+# executes them on a TEM3 object. The server is meant to be 
+# standalone and can be run on the same machine as PyJEM
 import argparse
 from datetime import datetime
 import json
 import sys
 import zmq
-
+import time
 from multiprocessing import Process, Queue
 
 def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def try_n_times(func, args, n, wait_time=0.1):
+    """
+    Try calling a python function (or any callable) n times 
+    with a wait time between each try. If the function fails
+    on the last call the exception is re-raised.
+    """
+    while n:
+        try:
+            return func(*args)
+        except Exception as e:
+            print("Called: {} with args: {} failed with: {}".format(func, args, e))
+            n -= 1
+
+            #If this was the last try re-raise the exception
+            if not n:
+                raise e
+            time.sleep(wait_time)
+
 
 def set_tilt_angle(stage, tilt, max_speed=False, relative=False):
     """
@@ -18,7 +40,8 @@ def set_tilt_angle(stage, tilt, max_speed=False, relative=False):
     rotate = stage.SetTXRel if relative else stage.SetTiltXAngle
 
     if max_speed:
-        prev_speed = stage.Getf1OverRateTxNum()
+        # prev_speed = stage.Getf1OverRateTxNum()
+        prev_speed = try_n_times(stage.Getf1OverRateTxNum, (), 5)
         print("{} - Getting current speed: {}".format(now(), prev_speed))
         print("{} - Setting max speed".format(now()))
         stage.Setf1OverRateTxNum(0)
@@ -50,7 +73,10 @@ def rotate_async(q, stage_factory):
         if tilt == 'request_stop':
             break
         print("{} - ASYNC: Setting tilt angle: {}, max_speed: {}".format(now(), tilt, max_speed))
-        set_tilt_angle(stage, tilt, max_speed, relative)
+        try:
+            set_tilt_angle(stage, tilt, max_speed, relative)
+        except Exception as e:
+            print("ASYNC: Setting tile angle failed with: {}".format(e))
         print("ASYNC: Rotation returned")
     print("ASYNC: Bye!")
         
