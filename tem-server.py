@@ -6,19 +6,16 @@ from datetime import datetime
 import json
 import sys
 import zmq
-import time
-from multiprocessing import Process, Queue
 
 def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
 
 class TEMServer:
     _IL1_DEFAULT = 21902
     STATUS_OK = 'OK'
     STATUS_ERROR = 'ERROR'
     encoding = 'ascii'
+    _version_str = '2024.8.30' #TODO! Auto update
 
     def __init__(self, port):
         self.stage = TEM3.Stage3()
@@ -47,11 +44,11 @@ class TEMServer:
 
     def exit_server(self):
         return "Bye!"
+    
+    def version(self):
+        return TEMServer._version_str
         
-    
-    
     # --------------------- STAGE ---------------------
-
     def GetStagePosition(self):
         return self.stage.GetPos()
 
@@ -188,8 +185,6 @@ class TEMServer:
 
 
             if cmd == 'exit_server':
-                self._p.join()
-                print("Process joined")
                 break
 
 

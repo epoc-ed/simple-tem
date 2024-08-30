@@ -4,19 +4,19 @@ from rich import print
 from datetime import datetime
 
 class TEMClient:
-    _default_timeout = 1000 #1s
     _ping_timeout = 1000 #1s
     encoding = 'ascii'
+    _version_str = '2024.8.30' #TODO! Auto update
 
     def __init__(self, host, port = 3535, verbose = True):
         self.host = host
         self.port = port
         self.verbose = verbose
-        print(f"TEMClient:endpoint: {self.host}:{self.port}")
+        if self.verbose:
+            print(f"TEMClient:endpoint: {self.host}:{self.port}")
 
 
     def _send_message(self, cmd, *args, timeout_ms = -1):
-        
         cmd = cmd.encode(TEMClient.encoding)
         args = json.dumps(args).encode(TEMClient.encoding)
         if self.verbose:
@@ -35,7 +35,7 @@ class TEMClient:
             status, message = self._decode_reply(reply)
             if self.verbose:
                 print(f'[dark_orange3]{self._now()} - REP: {status}:{message}[/dark_orange3]')
-            self._check_error(status, message) #TODO! Add function
+            self._check_error(status, message)
         
         except zmq.error.Again:
             raise TimeoutError(f"Timeout while waiting for reply from {self.host}:{self.port}")
@@ -77,12 +77,22 @@ class TEMClient:
     def sleep(self) -> None:
         self._send_message("sleep")
 
-        
     def exit_server(self) -> None:
         """
         Exit the server
         """
         self._send_message("exit_server")
+
+    @property
+    def server_version(self) -> str:
+        return self._send_message("version")
+    
+    @property
+    def client_version(self) -> str:
+        return TEMClient._version_str
+    
+    def check_version(self):
+        return self.server_version == self.client_version
 
     def UnknownFunction(self):
         """
