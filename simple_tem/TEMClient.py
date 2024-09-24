@@ -2,6 +2,7 @@ import zmq
 import json
 from rich import print
 from datetime import datetime
+import time
 
 class TEMClient:
     _ping_timeout = 1000 #1s
@@ -76,6 +77,19 @@ class TEMClient:
 
     def sleep(self) -> None:
         self._send_message("sleep")
+
+    def wait_until_rotate_starts(self, max_time_s = 2):
+        t0 = time.perf_counter()
+        while True:
+            try:
+                if self.stage_is_rotating:
+                    break
+            except RuntimeError:
+                pass
+            if time.perf_counter() - t0 > max_time_s:
+                raise TimeoutError("Timeout while waiting for stage rotation to start")
+        
+
 
     def exit_server(self) -> None:
         """
