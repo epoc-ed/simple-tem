@@ -84,7 +84,7 @@ class TEMClient:
             try:
                 if self.is_rotating:
                     break
-            except RuntimeError:
+            except Exception: #Catch all exceptions
                 pass
             if time.perf_counter() - t0 > max_time_s:
                 raise TimeoutError(f"Rotation did not start after {max_time_s:2f} seconds")
@@ -147,9 +147,9 @@ class TEMClient:
         for i in range(n_retries):
             try:
                 return self._send_message('GetStageStatus')[3] == 1
-            except RuntimeError:
+            except Exception:
                 pass
-        raise RuntimeError(f"Could not get stage status after {n_retries} retries")
+        raise TimeoutError(f"Could not get stage status after {n_retries} retries")
 
     def SetZRel(self, val : float) -> None:
         """
