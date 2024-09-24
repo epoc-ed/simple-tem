@@ -1,6 +1,6 @@
 
 import time
-
+from threading import Thread
 
 #Needed to synchronize values between processes
 import redis
@@ -79,7 +79,9 @@ class Stage3:
     
     def SetTiltXAngle(self, val):
         #TODO! deal with concurrent access
-        self._rotate(val)
+        t = Thread(target=self._rotate, args=(val,))
+        t.start()
+        # self._rotate(val)
     
     def Getf1OverRateTxNum(self) -> int:
         #0= 10(/sec), 1= 2(/sec), 2= 1(/sec), 3= 0.5(/sec), 4= 0.25(/sec), 5= 0.1(/sec)

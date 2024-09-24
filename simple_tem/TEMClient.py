@@ -4,19 +4,19 @@ from rich import print
 from datetime import datetime
 
 class TEMClient:
-    _default_timeout = 1000 #1s
     _ping_timeout = 1000 #1s
     encoding = 'ascii'
+    _version_str = '2024.8.30' #TODO! Auto update
 
     def __init__(self, host, port = 3535, verbose = True):
         self.host = host
         self.port = port
         self.verbose = verbose
-        print(f"TEMClient:endpoint: {self.host}:{self.port}")
+        if self.verbose:
+            print(f"TEMClient:endpoint: {self.host}:{self.port}")
 
 
     def _send_message(self, cmd, *args, timeout_ms = -1):
-        
         cmd = cmd.encode(TEMClient.encoding)
         args = json.dumps(args).encode(TEMClient.encoding)
         if self.verbose:
@@ -35,7 +35,7 @@ class TEMClient:
             status, message = self._decode_reply(reply)
             if self.verbose:
                 print(f'[dark_orange3]{self._now()} - REP: {status}:{message}[/dark_orange3]')
-            self._check_error(status, message) #TODO! Add function
+            self._check_error(status, message)
         
         except zmq.error.Again:
             raise TimeoutError(f"Timeout while waiting for reply from {self.host}:{self.port}")
@@ -77,12 +77,22 @@ class TEMClient:
     def sleep(self) -> None:
         self._send_message("sleep")
 
-        
     def exit_server(self) -> None:
         """
         Exit the server
         """
         self._send_message("exit_server")
+
+    @property
+    def server_version(self) -> str:
+        return self._send_message("version")
+    
+    @property
+    def client_version(self) -> str:
+        return TEMClient._version_str
+    
+    def check_version(self):
+        return self.server_version == self.client_version
 
     def UnknownFunction(self):
         """
@@ -137,22 +147,18 @@ class TEMClient:
         """
         self._send_message("SetYRel", val)
 
-    def SetTXRel(self, val : float, run_async: bool = False, max_speed: bool = False) -> None:
+    def SetTXRel(self, val : float) -> None:
         """
         Relative tilt around X axis.
         tilt-x relative value. range is +-90.00.0(degree)
-        run_async: run the command asynchronously and return immediately
-        max_speed: rotate at maximum speed, restore previous speed after rotation
         """
-        self._send_message("SetTXRel", val, run_async, max_speed)
+        self._send_message("SetTXRel", val)
 
-    def SetTiltXAngle(self, val, run_async = False, max_speed = False) -> None:
+    def SetTiltXAngle(self, val) -> None:
         """
         Set TiltX axis absolute value. range is +-90.00(degree)
-        run_async: run the command asynchronously and return immediately
-        max_speed: rotate at maximum speed, restore previous speed after rotation
         """
-        self._send_message("SetTiltXAngle", val, run_async, max_speed)
+        self._send_message("SetTiltXAngle", val)
 
     def GetTiltXAngle(self) -> float:
         """

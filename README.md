@@ -24,16 +24,14 @@ c.ping() #check connection
 c.stage_position #read position
 c.SetILs(21500, 24500)
 
-#Waits for stage to reach target (Most of the time, PyJEM bug?)
-c.SetTiltXAngle(0) 
 
-#No wait
-c.SetTiltXAngle(40, run_async = True)
+c.SetTiltXAngle(35) 
+
 ...
 
 # Check if we can talk to the sever before issuing a command
 if c.is_alive:
-    c.Sec.SetTiltXAngle(40, run_async = True)
+    c.Sec.SetTiltXAngle(40)
 else:
     raise SomeKindOfException
 
