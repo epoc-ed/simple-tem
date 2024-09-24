@@ -82,7 +82,7 @@ class TEMClient:
         t0 = time.perf_counter()
         while True:
             try:
-                if self.stage_is_rotating:
+                if self.is_rotating:
                     break
             except RuntimeError:
                 pass
@@ -144,7 +144,6 @@ class TEMClient:
     @property
     def is_rotating(self):
         n_retries = 3
-        
         for i in range(n_retries):
             try:
                 return self._send_message('GetStageStatus')[3] == 1
