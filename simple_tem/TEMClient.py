@@ -87,7 +87,7 @@ class TEMClient:
             except RuntimeError:
                 pass
             if time.perf_counter() - t0 > max_time_s:
-                raise TimeoutError("Timeout while waiting for stage rotation to start")
+                raise TimeoutError(f"Rotation did not start after {max_time_s:2f} seconds")
         
 
 
@@ -138,7 +138,19 @@ class TEMClient:
 
     @property
     def stage_is_rotating(self):
-        return self._send_message('GetStageStatus')[3] == 1
+        print('Warning: stage_is_rotating is deprecated. Use is_rotating instead')
+        return self.is_rotating
+    
+    @property
+    def is_rotating(self):
+        n_retries = 3
+        
+        for i in range(n_retries):
+            try:
+                return self._send_message('GetStageStatus')[3] == 1
+            except RuntimeError:
+                pass
+        raise RuntimeError(f"Could not get stage status after {n_retries} retries")
 
     def SetZRel(self, val : float) -> None:
         """
