@@ -148,6 +148,7 @@ class TEMClient:
             try:
                 return self._send_message('GetStageStatus')[3] == 1
             except Exception:
+                time.sleep(0.1)
                 pass
         raise TimeoutError(f"Could not get stage status after {n_retries} retries")
 
