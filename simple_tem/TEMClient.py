@@ -2,6 +2,7 @@ import zmq
 import json
 from rich import print
 from datetime import datetime
+import time
 
 class TEMClient:
     _ping_timeout = 1000 #1s
@@ -16,7 +17,8 @@ class TEMClient:
             print(f"TEMClient:endpoint: {self.host}:{self.port}")
 
 
-    def _send_message(self, cmd, *args, timeout_ms = -1):
+    def _send_message(self, cmd, *args, timeout_ms = 5000):
+        
         cmd = cmd.encode(TEMClient.encoding)
         args = json.dumps(args).encode(TEMClient.encoding)
         if self.verbose:
@@ -51,11 +53,14 @@ class TEMClient:
   
     def _check_error(self, status, message):
         if status != "OK":
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+            raise RuntimeError(f"{status}:{message}")
         
     def _now(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+
+
+    # --------------------- GENERAL ---------------------
     def ping(self, timeout_ms = None) -> bool:
         """
         Check if the server is alive and accepts commands
@@ -76,6 +81,19 @@ class TEMClient:
 
     def sleep(self) -> None:
         self._send_message("sleep")
+
+    def wait_until_rotate_starts(self, max_time_s = 2):
+        t0 = time.perf_counter()
+        while True:
+            try:
+                if self.is_rotating:
+                    break
+            except Exception: #Catch all exceptions
+                pass
+            if time.perf_counter() - t0 > max_time_s:
+                raise TimeoutError(f"Rotation did not start after {max_time_s:2f} seconds")
+        
+
 
     def exit_server(self) -> None:
         """
@@ -124,7 +142,19 @@ class TEMClient:
 
     @property
     def stage_is_rotating(self):
-        return self._send_message('GetStageStatus')[3] == 1
+        print('Warning: stage_is_rotating is deprecated. Use is_rotating instead')
+        return self.is_rotating
+    
+    @property
+    def is_rotating(self):
+        n_retries = 3
+        for i in range(n_retries):
+            try:
+                return self._send_message('GetStageStatus')[3] == 1
+            except Exception:
+                time.sleep(0.1)
+                pass
+        raise TimeoutError(f"Could not get stage status after {n_retries} retries")
 
     def SetZRel(self, val : float) -> None:
         """
