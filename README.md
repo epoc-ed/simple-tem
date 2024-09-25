@@ -7,7 +7,7 @@
 - PyJEM API: https://pyjem.github.io/PyJEM/interface/PyJEM.TEM3.html
 
 
-## usage
+## Usage
 
 **Server**
 
@@ -35,7 +35,38 @@ if c.is_alive:
 else:
     raise SomeKindOfException
 
+
+#Waiting for a rotation to finish
+c.SetTiltXAngle(10)
+c.wait_until_rotate_starts() #default timeout of 2s
+while c.is_rotating:
+    # some checks? 
+
+#stage is now stopped verify angle 
+a = c.GetTiltXAngle()
+
 ```
+
+## Error handling
+
+```python
+#Check, with a 1s timeout, if the server is responding -> True/False
+>>> c.is_alive 
+True
+
+#Normal calls have a timeout of 5s and then raises a TimeoutError
+>>> c.GetStagePosition()
+TimeoutError: Timeout while waiting for reply from sjsjs:3535
+
+#Each call to PyJEM could fail
+>>> c.Getf1OverRateTxNum()
+RuntimeError: Function execution error. function: Stage3::Getf1OverRateTxNum, code : 20483
+```
+
+In some functions three  automatic retries with a 0.1s sleep is implemented
+ - c.is_rotating
+
+ But mostly the caller is responsible to handle the exceptions.
 
 ## Tests
 

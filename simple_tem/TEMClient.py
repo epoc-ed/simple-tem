@@ -17,7 +17,8 @@ class TEMClient:
             print(f"TEMClient:endpoint: {self.host}:{self.port}")
 
 
-    def _send_message(self, cmd, *args, timeout_ms = -1):
+    def _send_message(self, cmd, *args, timeout_ms = 5000):
+        
         cmd = cmd.encode(TEMClient.encoding)
         args = json.dumps(args).encode(TEMClient.encoding)
         if self.verbose:
@@ -52,11 +53,14 @@ class TEMClient:
   
     def _check_error(self, status, message):
         if status != "OK":
-            raise ValueError(f"Unexpected reply: {status}:{message}")
+            raise RuntimeError(f"{status}:{message}")
         
     def _now(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+
+
+    # --------------------- GENERAL ---------------------
     def ping(self, timeout_ms = None) -> bool:
         """
         Check if the server is alive and accepts commands
