@@ -1,0 +1,39 @@
+package:
+  name: simple_tem
+  version: "{{ load_setup_py_data().version }}"
+
+build:
+  noarch: python
+
+
+source:
+  path: ..
+
+requirements:
+  build:
+    - python 
+    - setuptools
+
+  run:
+    - python
+    - rich
+    - redis-py
+    - pyyaml
+    - pyzmq
+
+test:
+  source_files:
+    - tests/
+  imports:
+    - simple_tem
+  # commands:
+  #   - pytest ./tests 
+  requires:
+    - pytest
+    - freezegun
+
+about:
+  home: https://github.com/epoc-ed/epoc-utils
+  license: MIT
+  license_family: MIT
+  summary: Configuration of experiments in the EPOC project
