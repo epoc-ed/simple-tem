@@ -15,7 +15,7 @@ class TEMServer:
     STATUS_OK = 'OK'
     STATUS_ERROR = 'ERROR'
     encoding = 'ascii'
-    _version_str = '2024.8.30' #TODO! Auto update
+    _version_str = '2024.12.21' #TODO! Auto update
 
     def __init__(self, port):
         self.stage = TEM3.Stage3()
@@ -23,6 +23,7 @@ class TEMServer:
         self.defl = TEM3.Def3()
         self.eos = TEM3.EOS3()
         self.apt = TEM3.Apt3()
+        self.det = TEM3.Detector3()
 
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
@@ -51,6 +52,9 @@ class TEMServer:
     # --------------------- STAGE ---------------------
     def GetStagePosition(self):
         return self.stage.GetPos()
+
+    def SetStagePosition(self, x, y):
+        return self.stage.SetPosition(x, y)
 
     def GetStageStatus(self):
         return self.stage.GetStatus()
@@ -148,6 +152,15 @@ class TEMServer:
         self.defl.SetBeamBlank(blank)
 
     # END DEF_________________________________________
+
+    # --------------------- DET ---------------------
+    def GetScreen(self):
+        return self.det.GetScreen()
+
+    def SetScreen(self, value):
+        self.det.SetScreen(value)
+
+    # END DET_________________________________________
     
     def _run(self):
         while True:
