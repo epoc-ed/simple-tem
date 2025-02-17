@@ -15,7 +15,7 @@ class TEMServer:
     STATUS_OK = 'OK'
     STATUS_ERROR = 'ERROR'
     encoding = 'ascii'
-    _version_str = '2024.12.21' #TODO! Auto update
+    _version_str = '2025.2.4' #TODO! Auto update
 
     def __init__(self, port):
         self.stage = TEM3.Stage3()
@@ -24,6 +24,8 @@ class TEMServer:
         self.eos = TEM3.EOS3()
         self.apt = TEM3.Apt3()
         self.det = TEM3.Detector3()
+        self.cam = TEM3.Camera3()
+        self.ht = TEM3.HT3()
 
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REP)
@@ -119,6 +121,9 @@ class TEMServer:
     def SetILFocus(self, value):
         self.lens.SetILFocus(value)
 
+    def SetCL3(self, value):
+        return self.lens.SetCL3(value)
+
     def GetCL3(self):
         return self.lens.GetCL3()
     
@@ -145,6 +150,21 @@ class TEMServer:
     def GetPLA(self):
         return self.defl.GetPLA()
     
+    def SetPLA(self, pla_x, pla_y):
+        self.defl.SetPLA(pla_x, pla_y)
+
+    def GetCLA1(self):
+        return self.defl.GetCLA1()
+    
+    def SetCLA1(self, cla_x, cla_y):
+        self.defl.SetCLA1(cla_x, cla_y)
+
+    def GetIS1(self):
+        return self.defl.GetIS1()
+    
+    def SetIS1(self, is1_x, is1_y):
+        self.defl.SetIS1(is1_x, is1_y)
+
     def GetBeamBlank(self):
         return self.defl.GetBeamBlank()
 
@@ -162,6 +182,18 @@ class TEMServer:
 
     # END DET_________________________________________
     
+    # --------------------- CAM ---------------------
+    def GetCurrentDensity(self):
+        return self.cam.GetCurrentDensity()
+
+    # END CAM_________________________________________
+
+    # --------------------- HT ----------------------
+    def GetHtValue(self):
+        return self.ht.GetHtValue()
+
+    # END HT__________________________________________
+
     def _run(self):
         while True:
             msgs = self.socket.recv_multipart()
