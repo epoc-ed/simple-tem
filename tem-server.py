@@ -114,6 +114,9 @@ class TEMServer:
     def GetAperatureSize(self, index):
         return self.apt.GetSize(index)
     
+    def GetAperaturePosition(self):
+        return self.apt.GetPosition()
+    
     # END APT__________________________________________
 
     # --------------------- LENS ---------------------
