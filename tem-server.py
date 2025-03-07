@@ -15,7 +15,7 @@ class TEMServer:
     STATUS_OK = 'OK'
     STATUS_ERROR = 'ERROR'
     encoding = 'ascii'
-    _version_str = '2025.2.4' #TODO! Auto update
+    _version_str = '2025.3.7' #TODO! Auto update
 
     def __init__(self, port):
         self.stage = TEM3.Stage3()
@@ -111,12 +111,24 @@ class TEMServer:
     # END EOS__________________________________________
     # ---------------------- APT ----------------------
     
-    def GetAperatureSize(self, index):
+    def GetAperatureSize(self, index): # to be removed !!
         return self.apt.GetSize(index)
     
-    def GetAperaturePosition(self):
-        return self.apt.GetPosition()
+    def GetApertureSize_CL(self):
+        return self.apt.GetSize(1)
+
+    def GetApertureSize_SA(self):
+        return self.apt.GetSize(4)
     
+    def GetAperturePosition(self):
+        return self.apt.GetPosition()
+
+    def GetApertureKind(self):
+        return self.apt.GetKind()
+
+    def SelectApertureKind(self, index):
+        self.apt.SelectKind(index)
+
     # END APT__________________________________________
 
     # --------------------- LENS ---------------------
