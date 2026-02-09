@@ -4,12 +4,17 @@ from threading import Thread
 
 #Needed to synchronize values between processes
 import redis
+import os 
 
 class PyJEM_DummyConf:
     redis_port = 5454
 
+redis_host = os.getenv('EPOC_REDIS_HOST', 'localhost')
+redis_port = int(os.getenv('EPOC_REDIS_PORT', f'{PyJEM_DummyConf.redis_port}'))
+redis_password = os.getenv('EPOC_REDIS_TOKEN', None)
+
 def redis_init():
-    r = redis.Redis(port = PyJEM_DummyConf.redis_port)
+    r = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
     if r.get("x_angle") is None:
         r.set("x_angle", 0)
     if r.get("f1OverRateTxNum") is None:
@@ -27,7 +32,7 @@ class Stage3:
     _degrees_per_second = [10, 2, 1, 0.5, 0.25, 0.1]
 
     def __init__(self):
-        self.redis = redis.Redis(port = PyJEM_DummyConf.redis_port)
+        self.redis = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
 
     def _rotate(self, target_angle):
         current_angle = float(self.redis.get("x_angle"))
@@ -153,7 +158,7 @@ class Lens3:
 
 class Def3:
     def __init__(self):
-        self.redis = redis.Redis(port = PyJEM_DummyConf.redis_port)
+        self.redis = redis.Redis(host=redis_host, port=redis_port, password=redis_password)
 
     def SetILs(self, stig_x, stig_y):
         if not isinstance(stig_x, int):
